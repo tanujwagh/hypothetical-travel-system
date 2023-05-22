@@ -24,6 +24,49 @@ The system take into consideration following assumptions -
 - The touch **OFF** should be later than touch **ON**.
 - Any touch **OFF** with a matching touch **ON** is considered failed and is marked as `Touch Type ON is missing`
 
+# Configurations
+The application uses `application.yaml` for its configurations, example
+
+```
+fair:
+  currency: $
+  rules:
+    -
+      source: StopA
+      destination: StopB
+      cost: 4.50
+    -
+      source: StopB
+      destination: StopC
+      cost: 6.25
+    -
+      source: StopA
+      destination: StopC
+      cost: 8.45
+
+input-file:
+  type: csv
+  delimiter: ","
+  dateTimeFormat: "dd-MM-yyyy HH:mm:ss"
+  headers:
+    - ID
+    - DateTimeUTC
+    - TouchType
+    - StopID
+    - CompanyID
+    - BusID
+    - PAN
+```
+
+New fair rules can be added to the application under the `fair.rule` section, example adding this to `fair.rules` section will add one more fair rule for processing -
+```
+-
+  source: StopA
+  destination: StopD
+  cost: 10.50
+```
+
+
 ### Build
 This application use **gradle** as its build plugin, please refer to HELP.md for any addition gradle references.
 
