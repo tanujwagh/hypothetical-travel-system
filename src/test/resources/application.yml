@@ -1,0 +1,29 @@
+
+fair:
+  currency: $
+  rules:
+    -
+      source: StopA
+      destination: StopB
+      cost: 4.50
+    -
+      source: StopB
+      destination: StopC
+      cost: 6.25
+    -
+      source: StopA
+      destination: StopC
+      cost: 8.45
+
+input:
+  type: csv
+  delimiter: ,
+  dateTimeFormat: dd-MM-yyyy hh:mm:ss
+  headers:
+    - ID
+    - DateTimeUTC
+    - TouchType
+    - StopID
+    - CompanyID
+    - BusID
+    - PAN
