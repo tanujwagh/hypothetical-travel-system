@@ -1,6 +1,6 @@
 package com.example.travel.config;
 
-import com.example.travel.touch.domain.TouchEvent;
+import com.example.travel.event.TouchEvent;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.springframework.context.annotation.Bean;

@@ -1,4 +1,4 @@
-package com.example.travel.touch.domain;
+package com.example.travel.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

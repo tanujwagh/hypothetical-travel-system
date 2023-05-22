@@ -1,6 +1,6 @@
-package com.example.travel.service;
+package com.example.travel.service.writer;
 
-import com.example.travel.touch.domain.TouchProcessedEvent;
+import com.example.travel.event.TouchProcessedEvent;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class CSVFileWriterService implements FileWriterService<List<TouchProcessedEvent>> {
+public class TripReportCSVFileWriterService implements FileWriterService<List<TouchProcessedEvent>> {
     private static final List<String> HEADER = List.of(
             "started",
             "finished",
@@ -30,7 +30,7 @@ public class CSVFileWriterService implements FileWriterService<List<TouchProcess
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
 
     @Override
-    public void write(String filename, List<TouchProcessedEvent> events) throws FileNotFoundException {
+    public File write(String filename, List<TouchProcessedEvent> events) throws FileNotFoundException {
         File csvOutputFile = new File(String.format("%s.%s", filename, FILE_EXTENSION));
         try (PrintWriter writer = new PrintWriter(csvOutputFile)) {
             writer.println(HEADER.stream().collect(Collectors.joining(",")));
@@ -38,6 +38,7 @@ public class CSVFileWriterService implements FileWriterService<List<TouchProcess
                     .map(event -> getCSVRow(event))
                     .forEach(writer::println);
         }
+        return csvOutputFile;
     }
 
     private String getCSVRow(TouchProcessedEvent event) {

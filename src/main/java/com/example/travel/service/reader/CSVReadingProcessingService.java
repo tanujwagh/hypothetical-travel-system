@@ -1,4 +1,4 @@
-package com.example.travel.service;
+package com.example.travel.service.reader;
 
 
 import com.example.travel.config.InputFileConfig;
@@ -25,7 +25,7 @@ public class CSVReadingProcessingService implements FileProcessingService<List<S
     }
 
     @Override
-    public List<CSVDataRow> process(List<String> rows) throws IOException {
+    public List<CSVDataRow> process(List<String> rows) {
         return rows.stream().map(line -> line.split(inputFileConfig.getDelimiter()))
                 .map(values -> new CSVDataRow(
                         values[0].trim(),

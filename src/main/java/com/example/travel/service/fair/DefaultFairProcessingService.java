@@ -1,17 +1,19 @@
-package com.example.travel.service;
+package com.example.travel.service.fair;
 
 import com.example.travel.config.FairConfig;
+import com.example.travel.event.TouchProcessedEvent;
+import com.example.travel.event.TouchProcessedEventType;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class FairProcessingService {
+public class DefaultFairProcessingService implements FairProcessingService<TouchProcessedEvent> {
     private final FairConfig fairConfig;
     private final Map<String, Map<String, Float>> routes;
 
-    public FairProcessingService(FairConfig fairConfig) {
+    public DefaultFairProcessingService(FairConfig fairConfig) {
         this.fairConfig = fairConfig;
         routes = initializeRoutes();
     }
@@ -32,11 +34,22 @@ public class FairProcessingService {
         return routes;
     }
 
-    public Float processCompletedTripFair(String source, String destination) {
+    @Override
+    public void applyFair(TouchProcessedEvent event) {
+        if(event.getType().equals(TouchProcessedEventType.COMPLETE)){
+            event.setChargeAmount(completedTripChargeAmount(event.getSourceStopId(), event.getDestinationStopId()));
+        } else if (event.getType().equals(TouchProcessedEventType.INCOMPLETE)) {
+            event.setChargeAmount(incompleteTripChargeAmount(event.getSourceStopId()));
+        }else {
+            event.setChargeAmount(cancelledTripChargeAmount());
+        }
+    }
+
+    private Float completedTripChargeAmount(String source, String destination) {
         return routes.get(source).get(destination);
     }
 
-    public Float processIncompleteTripFair(String source) {
+    private Float incompleteTripChargeAmount(String source) {
         Map<String, Float> destinationCosts = routes.get(source);
         Float maxCost = Float.MIN_VALUE;
         for (Map.Entry<String, Float> entry : destinationCosts.entrySet()) {
@@ -45,8 +58,7 @@ public class FairProcessingService {
         return maxCost;
     }
 
-    public Float processCancelledTripFair(String source, String destination){
+    private Float cancelledTripChargeAmount(){
         return 0f;
     }
-
 }

@@ -1,11 +1,15 @@
 package com.example.travel.service;
 
 import com.example.travel.dto.CSVDataRow;
-import com.example.travel.touch.domain.TouchEvent;
-import com.example.travel.touch.domain.TouchEventType;
-import com.example.travel.touch.domain.TouchProcessedEvent;
-import com.example.travel.touch.domain.TouchProcessedEventType;
+import com.example.travel.event.*;
+import com.example.travel.service.fair.FairProcessingService;
+import com.example.travel.service.reader.CSVReadingProcessingService;
+import com.example.travel.service.summary.TripSummaryProcessingService;
+import com.example.travel.service.touch.EventProcessingService;
+import com.example.travel.service.touch.TouchEventProcessingService;
+import com.example.travel.service.writer.FileWriterService;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -14,21 +18,27 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 @Service
-public class TravelService implements CommandLineRunner{
+@Profile("!test")
+public class TravelService implements CommandLineRunner {
 
     private static final Pattern FILENAME_ARG_PATTERN = Pattern.compile("^--filename=(\\S*)");
 
     private final CSVReadingProcessingService csvReadingProcessingService;
     private final EventProcessingService<List<TouchEvent>, List<TouchProcessedEvent>> touchEventProcessingService;
 
-    private final FileWriterService<List<TouchProcessedEvent>> csvFileWriterService;
+    private final FileWriterService<List<TouchProcessedEvent>> tripReportCsvFileWriterService;
+    private final FileWriterService<List<TripSummaryEvent>> tripSummaryCsvFileWriterService;
     private final TripSummaryProcessingService tripSummaryProcessingService;
 
-    TravelService(CSVReadingProcessingService csvReadingProcessingService, TouchEventProcessingService touchEventProcessingService, FileWriterService<List<TouchProcessedEvent>> csvFileWriterService, TripSummaryProcessingService tripSummaryProcessingService) {
+    private final FairProcessingService<TouchProcessedEvent> defaultFairProcessingService;
+
+    TravelService(CSVReadingProcessingService csvReadingProcessingService, TouchEventProcessingService touchEventProcessingService, FileWriterService<List<TouchProcessedEvent>> tripReportCsvFileWriterService, FileWriterService<List<TripSummaryEvent>> tripSummaryCsvFileWriterService, TripSummaryProcessingService tripSummaryProcessingService, FairProcessingService<TouchProcessedEvent> defaultFairProcessingService) {
         this.csvReadingProcessingService = csvReadingProcessingService;
         this.touchEventProcessingService = touchEventProcessingService;
-        this.csvFileWriterService = csvFileWriterService;
+        this.tripReportCsvFileWriterService = tripReportCsvFileWriterService;
+        this.tripSummaryCsvFileWriterService = tripSummaryCsvFileWriterService;
         this.tripSummaryProcessingService = tripSummaryProcessingService;
+        this.defaultFairProcessingService = defaultFairProcessingService;
     }
 
     @Override
@@ -45,22 +55,24 @@ public class TravelService implements CommandLineRunner{
                 row.getPan()
         )).toList();
         List<TouchProcessedEvent> processedEvents = touchEventProcessingService.process(touchEvents);
+        processedEvents.forEach(defaultFairProcessingService::applyFair);
 
-        List<TouchProcessedEvent> tripsData = processedEvents.stream().filter(e -> e.getType().equals(TouchProcessedEventType.COMPLETE) || e.getType().equals(TouchProcessedEventType.CANCELLED)).toList();
-        csvFileWriterService.write("trips", tripsData);
+        List<TouchProcessedEvent> tripsData = processedEvents.stream().filter(e -> e.getType().equals(TouchProcessedEventType.COMPLETE) || e.getType().equals(TouchProcessedEventType.CANCELLED) || e.getType().equals(TouchProcessedEventType.INCOMPLETE)).toList();
+        tripReportCsvFileWriterService.write("trips", tripsData);
 
         List<TouchProcessedEvent> failedData = processedEvents.stream().filter(e -> e.getType().equals(TouchProcessedEventType.FAILED)).toList();
-        csvFileWriterService.write("unprocessableTouchData", failedData);
+        tripReportCsvFileWriterService.write("unprocessableTouchData", failedData);
 
-        tripSummaryProcessingService.getSummary(processedEvents);
+        List<TripSummaryEvent> tripSummaryEvents = tripSummaryProcessingService.processSummary(processedEvents);
+        tripSummaryCsvFileWriterService.write("summary", tripSummaryEvents);
     }
 
-    private String getFileName(String... args){
+    private String getFileName(String... args) {
         return Arrays.stream(args).map(arg -> {
                     var matcher = FILENAME_ARG_PATTERN.matcher(arg);
                     return matcher.matches() ? matcher.group(1) : null;
                 }
-                ).filter(Objects::nonNull).findFirst().orElseThrow(() -> new RuntimeException("Input file is missing"));
+        ).filter(Objects::nonNull).findFirst().orElseThrow(() -> new RuntimeException("Input file is missing"));
     }
 
 }

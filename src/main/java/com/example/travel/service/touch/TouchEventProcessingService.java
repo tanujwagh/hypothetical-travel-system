@@ -1,9 +1,9 @@
-package com.example.travel.service;
+package com.example.travel.service.touch;
 
-import com.example.travel.touch.domain.TouchEvent;
-import com.example.travel.touch.domain.TouchEventType;
-import com.example.travel.touch.domain.TouchProcessedEvent;
-import com.example.travel.touch.domain.TouchProcessedEventType;
+import com.example.travel.event.TouchEvent;
+import com.example.travel.event.TouchEventType;
+import com.example.travel.event.TouchProcessedEvent;
+import com.example.travel.event.TouchProcessedEventType;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,6 +14,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @Service
@@ -31,7 +32,7 @@ public class TouchEventProcessingService implements EventProcessingService<List<
 
     @Override
     public List<TouchProcessedEvent> process(List<TouchEvent> touchEvents) {
-        return touchEvents.stream().map(event ->
+        List<TouchProcessedEvent> processedEvents = touchEvents.stream().map(event ->
                 getValidationErrors(event)
                         .map( error -> new TouchProcessedEvent(
                                 event.getDateTime(),
@@ -47,7 +48,26 @@ public class TouchEventProcessingService implements EventProcessingService<List<
                                 error
                         ))
                         .orElseGet(() -> processEvent(event))
-        ).filter(Objects::nonNull).collect(Collectors.toList());
+        ).filter(Objects::nonNull).toList();
+        List<TouchProcessedEvent> cancelledEvents = touchEventStore.entrySet().stream()
+                    .map(Map.Entry::getValue)
+                    .map(event -> new TouchProcessedEvent(
+                            event.getDateTime(),
+                            event.getDateTime(),
+                            0L,
+                            event.getStopId(),
+                            event.getStopId(),
+                            0.0f,
+                            event.getCompanyId(),
+                            event.getBusId(),
+                            event.getPan(),
+                            TouchProcessedEventType.INCOMPLETE,
+                            "INCOMPLETE"
+                    )).toList();
+        return Stream.concat(
+                processedEvents.stream(),
+                cancelledEvents.stream()
+        ).collect(Collectors.toList());
     }
 
     private TouchProcessedEvent processEvent(TouchEvent newEvent) {

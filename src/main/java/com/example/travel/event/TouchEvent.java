@@ -1,6 +1,5 @@
-package com.example.travel.touch.domain;
+package com.example.travel.event;
 
-import com.example.travel.core.domain.TravelEvent;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -12,7 +11,7 @@ import java.time.ZonedDateTime;
 @Getter
 @Setter
 @AllArgsConstructor
-public class TouchEvent extends TravelEvent {
+public class TouchEvent {
     @NotNull(message = "Id is missing")
     private Long id;
 
